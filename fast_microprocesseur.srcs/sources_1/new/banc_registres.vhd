@@ -49,11 +49,8 @@ end banc_registres;
 
 architecture Behavioral of banc_registres is
 
-type mem is array (0 to 15) of STD_LOGIC_VECTOR (NB-1 downto 0);
-
-signal IA: STD_LOGIC_VECTOR(NB-1 downto 0) := (others => '0');
-signal IB: STD_LOGIC_VECTOR(NB-1 downto 0) := (others => '0');
-signal Registres: mem := (others => (NB-1 downto 0 => '0'));
+type reg is array (0 to 15) of STD_LOGIC_VECTOR (NB-1 downto 0);
+signal Registres: reg := (others => (NB-1 downto 0 => '0'));
 
 begin
 

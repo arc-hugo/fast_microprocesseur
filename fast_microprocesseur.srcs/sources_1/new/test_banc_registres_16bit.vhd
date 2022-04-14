@@ -85,8 +85,9 @@ end process;
 
 addA <= X"5" after 100ns;
 addB <= X"1", X"F" after 100ns;
-addW <= X"5" after 50ns, X"F" after 150ns;
-W <= '1' after 50ns, '0' after 200ns;
-DATA <= X"FFFF" after 45ns;
+addW <= X"5" after 150ns, X"F" after 160ns;
+W <= '1' after 150ns, '0' after 200ns;
+DATA <= X"FFFF" after 150ns;
 RST <= '1' after 500ns;
+
 end Behavioral;
