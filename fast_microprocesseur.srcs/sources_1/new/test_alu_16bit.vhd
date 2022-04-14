@@ -52,7 +52,7 @@ Port ( A : in STD_LOGIC_VECTOR (NB-1 downto 0);
        C : out STD_LOGIC);
 end component;
 
-constant NB: integer := 16;
+constant NB: Natural := 16;
 signal A_local: STD_LOGIC_VECTOR (NB-1 downto 0) := (others => '0');
 signal B_local: STD_LOGIC_VECTOR (NB-1 downto 0) := (others => '0');
 signal Ctrl_local: STD_LOGIC_VECTOR (2 downto 0) := (others => '0');
