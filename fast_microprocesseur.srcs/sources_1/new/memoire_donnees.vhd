@@ -53,12 +53,12 @@ begin
 
 process
 begin
-    wait until rising_edge(CLK);
+    wait until rising_edge(CLK);    
     
     if RST = '1' then
         MEM_DATA <= (others => (NB-1 downto 0 => '0'));
     end if;
-    
+
     if RW = '0' then
         MEM_DATA(to_integer(unsigned(add))) <= Input;
     else

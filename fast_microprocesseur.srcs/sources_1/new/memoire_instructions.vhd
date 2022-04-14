@@ -21,6 +21,8 @@
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+use IEEE.NUMERIC_STD.ALL;
 
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
@@ -32,14 +34,24 @@ use IEEE.STD_LOGIC_1164.ALL;
 --use UNISIM.VComponents.all;
 
 entity memoire_instructions is
-    Port ( add : in STD_LOGIC_VECTOR (0 downto 0);
+    generic (NB: Natural := 16);
+    Port ( add : in STD_LOGIC_VECTOR (NB-1 downto 0);
            CLK : in STD_LOGIC;
-           OUT : out STD_LOGIC_VECTOR (31 downto 0));
+           Output : out STD_LOGIC_VECTOR (31 downto 0));
 end memoire_instructions;
 
 architecture Behavioral of memoire_instructions is
 
+constant size: STD_LOGIC_VECTOR(NB downto 0) := '1' & (NB-1 downto 0 => '0');
+type mem is array (0 to to_integer(unsigned(size))-1) of STD_LOGIC_VECTOR (31 downto 0);
+signal MEM_INSTR: mem := (others => (NB-1 downto 0 => '0'));
+
 begin
 
+process
+begin
+   wait until rising_edge(CLK);
+   Output <= MEM_INSTR(to_integer(unsigned(add)));
+end process;
 
 end Behavioral;
