@@ -79,8 +79,8 @@ banc_registres_16: banc_registres generic map (NB => NB) Port Map (
 
 process
 begin
-    CLK <= not(CLK);
     wait for CLK_period/2;
+    CLK <= not(CLK);
 end process;
 
 addA <= X"5" after 100ns;
