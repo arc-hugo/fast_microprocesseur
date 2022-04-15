@@ -20,7 +20,6 @@
 
 
 library IEEE;
-library alu;
 use IEEE.STD_LOGIC_1164.ALL;
 use alu.ALL;
 
