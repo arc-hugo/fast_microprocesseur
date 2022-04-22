@@ -25,6 +25,7 @@ library banc_registres;
 library memoire_instructions;
 library memoire_donnees;
 use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
 
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
@@ -130,6 +131,13 @@ signal B_Mem_RE: STD_LOGIC_VECTOR (NB-1 downto 0) := (others => '0');
 
 begin
 
+process
+begin
+    wait for CLK_period/2;
+    CLK <= not(CLK);
+    IP <= IP + '1';
+end process;
+
 memoire_instructions_16: memoire_instructions generic map (NB => NB) Port Map (
    add => IP,
    CLK => CLK,
@@ -155,7 +163,7 @@ banc_registre_16: banc_registres generic map (NB => NB) Port Map (
 
 A_DI_EX <= A_LI_DI when rising_edge(CLK);
 OP_DI_EX <= OP_LI_DI when rising_edge(CLK);
-B_DI_EX <= MUX_QA when rising_edge(CLK);
+B_DI_EX <= B_LI_DI when rising_edge(CLK);
 
 A_EX_Mem <= A_DI_EX when rising_edge(CLK);
 OP_EX_Mem <= OP_DI_EX when rising_edge(CLK);
@@ -165,6 +173,7 @@ A_Mem_RE <= A_EX_Mem when rising_edge(CLK);
 OP_Mem_RE <= OP_EX_Mem when rising_edge(CLK);
 B_Mem_RE <= B_EX_Mem when rising_edge(CLK);
 
-
+LC_Mem_RE <= '1' when OP_Mem_RE = X"08" 
+             else '0'
 
 end Behavioral;

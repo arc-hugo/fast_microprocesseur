@@ -54,9 +54,10 @@ begin
 S_Plus <= ((NB-1 downto 0 => '0') & A) + ((NB-1 downto 0 => '0')  & B) when Ctrl_Alu = "000" else -- Addition
           ((NB-1 downto 0 => '0')  & A) - ((NB-1 downto 0 => '0')  & B) when Ctrl_Alu = "001" else -- Soustraction
           A * B when Ctrl_Alu = "010" else -- Multiplication
-          ((NB-1 downto 0 => '0')  & A) and ((NB-1 downto 0 => '0')  & B) when Ctrl_Alu = "011" else -- ET logique
-          ((NB-1 downto 0 => '0')  & A) or ((NB-1 downto 0 => '0')  & B) when Ctrl_Alu = "100" else -- OU logique
-          not ((NB-1 downto 0 => '0')  & A) when Ctrl_Alu = "101"; -- NON logique
+          -- Division sur "011" non implémentée
+          ((NB-1 downto 0 => '0')  & A) and ((NB-1 downto 0 => '0')  & B) when Ctrl_Alu = "100" else -- ET logique
+          ((NB-1 downto 0 => '0')  & A) or ((NB-1 downto 0 => '0')  & B) when Ctrl_Alu = "101" else -- OU logique
+          not ((NB-1 downto 0 => '0')  & A) when Ctrl_Alu = "110"; -- NON logique
 
 -- Sortie de la valeur calculée
 S <= S_Plus(NB-1 downto 0);
