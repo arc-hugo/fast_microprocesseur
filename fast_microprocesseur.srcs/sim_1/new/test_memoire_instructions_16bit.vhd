@@ -41,14 +41,14 @@ component memoire_instructions
     generic(NB: Natural := 16);
     Port ( add : in STD_LOGIC_VECTOR (NB-1 downto 0);
            CLK : in STD_LOGIC;
-           Output : out STD_LOGIC_VECTOR (31 downto 0));
+           Output : out STD_LOGIC_VECTOR ((NB*4)-1 downto 0));
 end component;
 
 constant CLK_period: TIME := 10ns;
 constant NB: Natural := 16;
 
 signal add: STD_LOGIC_VECTOR (NB-1 downto 0) := (others => '0');
-signal Output: STD_LOGIC_VECTOR (NB-1 downto 0) := (others => '0');
+signal Output: STD_LOGIC_VECTOR ((NB*4)-1 downto 0) := (others => '0');
 signal CLK: STD_LOGIC := '0';
 
 begin

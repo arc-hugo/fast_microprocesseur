@@ -40,15 +40,15 @@ architecture Behavioral of test_alu_16bit is
 
 
 component alu
-generic (NB: Natural := 16);
-Port ( A : in STD_LOGIC_VECTOR (NB-1 downto 0);
-       B : in STD_LOGIC_VECTOR (NB-1 downto 0);
-       Ctrl_Alu : in STD_LOGIC_VECTOR (2 downto 0);
-       S : out STD_LOGIC_VECTOR (NB-1 downto 0);
-       N : out STD_LOGIC;
-       O : out STD_LOGIC;
-       Z : out STD_LOGIC;
-       C : out STD_LOGIC);
+    generic (NB: Natural := 16);
+    Port ( A : in STD_LOGIC_VECTOR (NB-1 downto 0);
+           B : in STD_LOGIC_VECTOR (NB-1 downto 0);
+           Ctrl_Alu : in STD_LOGIC_VECTOR (2 downto 0);
+           S : out STD_LOGIC_VECTOR (NB-1 downto 0);
+           N : out STD_LOGIC;
+           O : out STD_LOGIC;
+           Z : out STD_LOGIC;
+           C : out STD_LOGIC);
 end component;
 
 constant NB: Natural := 16;
