@@ -34,17 +34,24 @@ use IEEE.NUMERIC_STD.ALL;
 --use UNISIM.VComponents.all;
 
 entity memoire_instructions is
-    generic (NB: Natural := 16);
-    Port ( add : in STD_LOGIC_VECTOR (NB-1 downto 0);
+    generic (NB: Natural := 64);
+    Port ( add : in STD_LOGIC_VECTOR ((NB/4)-1 downto 0);
            CLK : in STD_LOGIC;
-           Output : out STD_LOGIC_VECTOR ((NB*4)-1 downto 0));
+           Output : out STD_LOGIC_VECTOR (NB-1 downto 0));
 end memoire_instructions;
 
 architecture Behavioral of memoire_instructions is
 
 constant size: STD_LOGIC_VECTOR(NB downto 0) := '1' & (NB-1 downto 0 => '0');
-type mem is array (0 to to_integer(unsigned(size))-1) of STD_LOGIC_VECTOR ((NB*4)-1 downto 0);
-signal MEM_INSTR: mem := (others => ((NB*4)-1 downto 0 => '0'));
+type mem is array (0 to to_integer(unsigned(size))-1) of STD_LOGIC_VECTOR ((NB/4)-1 downto 0);
+
+-- AFC R1 16 (0008_0001_0010_0000)
+-- AFC R3 2 (0008_0003_0002_0000)
+-- ADD R2 R1 R3 (0000_0002_0001_0003)
+constant MEM_INSTR: mem := (X"0008_0001_0010_0000",
+                            X"0008_0003_0002_0000",
+                            X"0000_0002_0001_0003",
+                            others => (NB-1 downto 0 => '0'));
 
 begin
 
