@@ -66,7 +66,7 @@ component memoire_instructions
     generic(NB: Natural := 16);
     Port ( add : in STD_LOGIC_VECTOR (NB-1 downto 0);
            CLK : in STD_LOGIC;
-           Output : out STD_LOGIC_VECTOR (31 downto 0));
+           Output : out STD_LOGIC_VECTOR ((NB*4)-1 downto 0));
 end component;
 
 -- Pipeline LI/DI
@@ -131,24 +131,34 @@ signal B_Mem_RE: STD_LOGIC_VECTOR (NB-1 downto 0) := (others => '0');
 
 begin
 
+-- Processus de mise à jour de l'horloge
 process
 begin
     wait for CLK_period/2;
     CLK <= not(CLK);
+end process;
+
+-- Processus de mise à jour du pointeur d'instruction
+process
+begin
+    wait until rising_edge(CLK);
     IP <= IP + '1';
 end process;
 
+-- Instanciation de la mémoire d'instruction
 memoire_instructions_16: memoire_instructions generic map (NB => NB) Port Map (
    add => IP,
    CLK => CLK,
    Output => Output
 );
 
+-- Découpage de la sortie de mémoire d'instruction dans le pipeline 
 A_LI_DI <= Output((NB*4)-1 downto NB*3);
 OP_LI_DI <= Output((NB*3)-1 downto NB*2);
 B_LI_DI <= Output((NB*2)-1 downto NB);
 C_LI_DI <= Output(NB-1 downto 0);
 
+-- Instanciation du banc de registres
 banc_registre_16: banc_registres generic map (NB => NB) Port Map (
     addA => A_LI_DI(3 downto 0),
     addB => C_LI_DI(3 downto 0),
@@ -161,19 +171,23 @@ banc_registre_16: banc_registres generic map (NB => NB) Port Map (
     QB => C_DI_EX
 );
 
+-- Pipeline de transition entre le banc de registres et l'ALU
 A_DI_EX <= A_LI_DI when rising_edge(CLK);
 OP_DI_EX <= OP_LI_DI when rising_edge(CLK);
 B_DI_EX <= B_LI_DI when rising_edge(CLK);
 
+-- Pipeline de transition entre l'ALU et la mémoire de données
 A_EX_Mem <= A_DI_EX when rising_edge(CLK);
 OP_EX_Mem <= OP_DI_EX when rising_edge(CLK);
 B_EX_Mem <= B_DI_EX when rising_edge(CLK);
 
+-- Pipeline de transition entre la mémoire de données et le banc de registres
 A_Mem_RE <= A_EX_Mem when rising_edge(CLK);
 OP_Mem_RE <= OP_EX_Mem when rising_edge(CLK);
 B_Mem_RE <= B_EX_Mem when rising_edge(CLK);
 
+-- Écriture dans le banc de registres
 LC_Mem_RE <= '1' when OP_Mem_RE = X"08" 
-             else '0'
+             else '0';
 
 end Behavioral;
