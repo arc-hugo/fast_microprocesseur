@@ -153,8 +153,8 @@ memoire_instructions_16: memoire_instructions generic map (NB => NB) Port Map (
 );
 
 -- Découpage de la sortie de mémoire d'instruction dans le pipeline 
-A_LI_DI <= Output((NB*4)-1 downto NB*3);
-OP_LI_DI <= Output((NB*3)-1 downto NB*2);
+OP_LI_DI <= Output((NB*4)-1 downto NB*3);
+A_LI_DI <= Output((NB*3)-1 downto NB*2);
 B_LI_DI <= Output((NB*2)-1 downto NB);
 C_LI_DI <= Output(NB-1 downto 0);
 
