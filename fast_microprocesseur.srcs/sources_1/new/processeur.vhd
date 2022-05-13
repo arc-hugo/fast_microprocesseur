@@ -49,9 +49,9 @@ constant CLK_period: TIME := 10ns;
 constant NB: Natural := 16;
 
 -- Signal d'horloge
-signal CLK: STD_LOGIC := '0';
+signal CLK: STD_LOGIC := '1';
 -- Signal de reset
-signal RST: STD_LOGIC := '0';
+signal RST: STD_LOGIC := '1';
 -- Pointeur d'instruction
 signal IP: STD_LOGIC_VECTOR (NB-1 downto 0) := (others => '0');
 -- Sortie de la mémoire d'instructions
@@ -63,10 +63,9 @@ signal LC_Mem_RE: STD_LOGIC:= '0';
 
 -- Mémoire d'instructions du processeur
 component memoire_instructions
-    generic(NB: Natural := 16);
-    Port ( add : in STD_LOGIC_VECTOR (NB-1 downto 0);
+    Port ( add : in STD_LOGIC_VECTOR (15 downto 0);
            CLK : in STD_LOGIC;
-           Output : out STD_LOGIC_VECTOR ((NB*4)-1 downto 0));
+           Output : out STD_LOGIC_VECTOR (63 downto 0));
 end component;
 
 -- Pipeline LI/DI
@@ -131,6 +130,26 @@ signal B_Mem_RE: STD_LOGIC_VECTOR (NB-1 downto 0) := (others => '0');
 
 begin
 
+-- Instanciation de la mémoire d'instruction
+memoire_instructions_16: memoire_instructions Port Map (
+   add => IP,
+   CLK => CLK,
+   Output => Output
+);
+
+-- Instanciation du banc de registres
+banc_registre_16: banc_registres generic map (NB => NB) Port Map (
+    addA => B_LI_DI(3 downto 0),
+    addB => C_LI_DI(3 downto 0),
+    addW => A_Mem_RE(3 downto 0),
+    W => LC_Mem_RE,
+    DATA => B_Mem_RE,
+    RST => RST,
+    CLK => CLK,
+    QA => MUX_QA,
+    QB => C_DI_EX
+);
+
 -- Processus de mise à jour de l'horloge
 process
 begin
@@ -145,49 +164,57 @@ begin
     IP <= IP + '1';
 end process;
 
--- Instanciation de la mémoire d'instruction
-memoire_instructions_16: memoire_instructions generic map (NB => NB) Port Map (
-   add => IP,
-   CLK => CLK,
-   Output => Output
-);
+-- Décalage des valeurs de A dans les pipelines
+process
+begin
+    wait until rising_edge(CLK);
+    A_LI_DI <= Output((NB*3)-1 downto NB*2);
+    A_DI_EX <= A_LI_DI;
+    A_EX_Mem <= A_DI_EX;
+    A_Mem_RE <= A_EX_Mem;
+end process;
 
--- Découpage de la sortie de mémoire d'instruction dans le pipeline 
-OP_LI_DI <= Output((NB*4)-1 downto NB*3);
-A_LI_DI <= Output((NB*3)-1 downto NB*2);
-B_LI_DI <= Output((NB*2)-1 downto NB);
-C_LI_DI <= Output(NB-1 downto 0);
+-- Décalage des valeurs de OP dans les pipelines
+process
+begin
+    wait until rising_edge(CLK);
+    OP_LI_DI <= Output((NB*4)-1 downto NB*3);
+    OP_DI_EX <= OP_LI_DI;
+    OP_EX_Mem <= OP_DI_EX;
+    OP_Mem_RE <= OP_EX_Mem;
+end process;
 
--- Instanciation du banc de registres
-banc_registre_16: banc_registres generic map (NB => NB) Port Map (
-    addA => A_LI_DI(3 downto 0),
-    addB => C_LI_DI(3 downto 0),
-    addW => A_Mem_RE(3 downto 0),
-    W => LC_Mem_RE,
-    DATA => B_Mem_RE,
-    RST => RST,
-    CLK => CLK,
-    QA => MUX_QA,
-    QB => C_DI_EX
-);
+-- Décalage des valeurs de B dans les pipelines
+process
+begin
+    wait until rising_edge(CLK);
+    B_LI_DI <= Output((NB*2)-1 downto NB);
+    if OP_LI_DI = X"09"
+       or OP_LI_DI = X"0A"
+       or OP_LI_DI = X"0B"
+       then
+        B_DI_EX <= B_LI_DI;
+    else
+        B_DI_EX <= MUX_QA;
+    end if;
+    B_EX_Mem <= B_DI_EX;
+    B_Mem_RE <= B_EX_Mem;
+end process;
 
--- Pipeline de transition entre le banc de registres et l'ALU
-A_DI_EX <= A_LI_DI when rising_edge(CLK);
-OP_DI_EX <= OP_LI_DI when rising_edge(CLK);
-B_DI_EX <= B_LI_DI when rising_edge(CLK);
-
--- Pipeline de transition entre l'ALU et la mémoire de données
-A_EX_Mem <= A_DI_EX when rising_edge(CLK);
-OP_EX_Mem <= OP_DI_EX when rising_edge(CLK);
-B_EX_Mem <= B_DI_EX when rising_edge(CLK);
-
--- Pipeline de transition entre la mémoire de données et le banc de registres
-A_Mem_RE <= A_EX_Mem when rising_edge(CLK);
-OP_Mem_RE <= OP_EX_Mem when rising_edge(CLK);
-B_Mem_RE <= B_EX_Mem when rising_edge(CLK);
+-- Décalage des valeurs de C dans les pipelines
+process
+begin
+    wait until rising_edge(CLK);
+    C_LI_DI <= Output(NB-1 downto 0);
+end process;
 
 -- Écriture dans le banc de registres
-LC_Mem_RE <= '1' when OP_Mem_RE = X"08" 
-             else '0';
+-- NOP = 00
+-- JMP = 0C
+-- JMF = 0D
+LC_Mem_RE <= '0' when OP_Mem_RE = X"0C" 
+                 or OP_Mem_RE = X"0D"
+                 or OP_Mem_RE = X"00"
+             else '1';
 
 end Behavioral;

@@ -41,15 +41,20 @@ end memoire_instructions;
 
 architecture Behavioral of memoire_instructions is
 
-constant size: STD_LOGIC_VECTOR(64 downto 0) := '1' & (63 downto 0 => '0');
-type mem is array (0 to to_integer(unsigned(size))-1) of STD_LOGIC_VECTOR (63 downto 0);
+type mem is array (0 to 131071) of STD_LOGIC_VECTOR (63 downto 0);
 
--- AFC R1 16 (0008_0001_0010_0000)
--- AFC R3 2 (0008_0003_0002_0000)
--- ADD R2 R1 R3 (0000_0002_0001_0003)
-constant MEM_INSTR: mem := (X"0008_0001_0010_0000",
-                            X"0008_0003_0002_0000",
-                            X"0000_0002_0001_0003",
+-- AFC R1 16 (0009_0001_0010_0000)
+-- AFC R3 2 (0009_0003_0002_0000)
+-- COP R4 R1 (0008_0004_0001_0000)
+-- LDR R4 10 (000A_0004_000A_0000)
+-- STR 10 R3 (000B_000A_0003_0000)
+-- ADD R2 R1 R3 (0001_0002_0001_0003)
+constant MEM_INSTR: mem := (X"0009_0001_0010_0000",
+                            X"0009_0003_0002_0000",
+                            X"0008_0004_0001_0000",
+                            X"0001_0002_0001_0003",
+                            X"000A_0004_000A_0000",
+                            X"000B_000A_0003_0000",
                             others => (63 downto 0 => '0'));
 
 begin
