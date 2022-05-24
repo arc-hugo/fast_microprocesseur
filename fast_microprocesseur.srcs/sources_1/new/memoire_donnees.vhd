@@ -22,11 +22,10 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
-use IEEE.NUMERIC_STD.ALL;
 
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
+use IEEE.NUMERIC_STD.ALL;
 
 -- Uncomment the following library declaration if instantiating
 -- any Xilinx leaf cells in this code.
@@ -54,7 +53,7 @@ begin
 process
 begin
     wait until rising_edge(CLK);    
-    if RST = '1' then
+    if RST = '0' then
         MEM_DATA <= (others => (NB-1 downto 0 => '0'));
     elsif RW = '1' then
         Output <= MEM_DATA(to_integer(unsigned(add)));

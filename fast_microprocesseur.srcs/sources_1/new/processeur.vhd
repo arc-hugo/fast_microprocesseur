@@ -56,8 +56,10 @@ signal RST: STD_LOGIC := '1';
 
 -- Pointeur d'instruction
 signal IP: STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
+
 -- Sortie de la mémoire d'instructions
-signal Output: STD_LOGIC_VECTOR (63 downto 0) := (others => '0');
+signal Output_INSTR: STD_LOGIC_VECTOR (63 downto 0) := (others => '0');
+signal Output_DATA: STD_LOGIC_VECTOR (63 downto 0) := (others => '0');
 
 -- Sortie QB du banc de registre
 signal QB: STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
@@ -72,12 +74,19 @@ signal C: STD_LOGIC := '0';
 signal MUX_QA: STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
 -- MUX à la sortie de l'ALU
 signal MUX_ALU: STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
+-- MUX à l'entrée de la mémoire de données
+signal MUX_IN_Mem: STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
+-- MUX à la sortie de la mémoire de données
+signal MUX_OUT_Mem: STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
 
 -- Comparateur logique au niveau 3
 -- Identification de l'opération logique à appliquer
 signal LC_ALU: STD_LOGIC_VECTOR (2 downto 0) := (others => '0');
+-- Comparateur logique au niveau 4
+-- Change l'état du bit de lecture-écriture en mémoire
+signal LC_Mem: STD_LOGIC := '0';
 -- Comparateur logique au niveau 5
--- Activation ou non du bit d'écriture en mémoire
+-- Activation ou non du bit d'écriture en registre
 signal LC_RE: STD_LOGIC := '0';
 
 -- Mémoire d'instructions du processeur
@@ -153,11 +162,11 @@ begin
 memoire_instructions_16: memoire_instructions_16bit Port Map (
    add => IP,
    CLK => CLK,
-   Output => Output
+   Output => Output_INSTR
 );
 
 -- Instanciation du banc de registres
-banc_registre_16: banc_registres generic map (NB => NB) Port Map (
+banc_registre_16: banc_registres generic map (NB => NB) port Map (
     addA => B_LI_DI(3 downto 0),
     addB => C_LI_DI(3 downto 0),
     addW => A_Mem_RE(3 downto 0),
@@ -180,6 +189,15 @@ alu_16: alu generic map (NB => NB) port map (
     C => C
 );
 
+memoire_donnees_16: memoire_donnees generic map (NB => NB) port map (
+    add => B_EX_Mem,
+    Input => B_EX_Mem,
+    RW => LC_Mem,
+    RST => RST,
+    CLK => CLK,
+    Output => Output_DATA
+);
+
 -- Processus de mise à jour de l'horloge
 process
 begin
@@ -198,7 +216,7 @@ end process;
 process
 begin
     wait until rising_edge(CLK);
-    A_LI_DI <= Output((NB*3)-1 downto NB*2);
+    A_LI_DI <= Output_INSTR((NB*3)-1 downto NB*2);
     A_DI_EX <= A_LI_DI;
     A_EX_Mem <= A_DI_EX;
     A_Mem_RE <= A_EX_Mem;
@@ -208,7 +226,7 @@ end process;
 process
 begin
     wait until rising_edge(CLK);
-    OP_LI_DI <= Output((NB*4)-1 downto NB*3);
+    OP_LI_DI <= Output_INSTR((NB*4)-1 downto NB*3);
     OP_DI_EX <= OP_LI_DI;
     OP_EX_Mem <= OP_DI_EX;
     OP_Mem_RE <= OP_EX_Mem;
@@ -218,25 +236,33 @@ end process;
 process
 begin
     wait until rising_edge(CLK);
-    B_LI_DI <= Output((NB*2)-1 downto NB);
+    B_LI_DI <= Output_INSTR((NB*2)-1 downto NB);
+    
     if OP_LI_DI > X"08" and OP_LI_DI < X"0C"then
         B_DI_EX <= B_LI_DI;
     else
         B_DI_EX <= MUX_QA;
     end if;
+    
     if OP_DI_EX > X"7" then
         B_EX_Mem <= B_DI_EX;
     else
         B_EX_Mem <= MUX_ALU;
     end if;
-    B_Mem_RE <= B_EX_Mem;
+    
+    if OP_EX_Mem = X"A" then
+        B_Mem_RE <= MUX_OUT_Mem;
+    else
+        B_Mem_RE <= B_EX_Mem;
+    end if;
+    
 end process;
 
 -- Décalage des valeurs de C dans les pipelines
 process
 begin
     wait until rising_edge(CLK);
-    C_LI_DI <= Output(NB-1 downto 0);
+    C_LI_DI <= Output_INSTR(NB-1 downto 0);
     C_DI_EX <= QB;
 end process;
 
