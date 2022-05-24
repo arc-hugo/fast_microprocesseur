@@ -58,7 +58,7 @@ process
 begin
     wait until rising_edge(CLK);
     -- Réinitialisation synchrone des registres si RST est haut
-    if RST = '1' then
+    if RST = '0' then
         Registres <= (others => (NB-1 downto 0 => '0'));
     -- Écriture synchrone si W est haut
     elsif W = '1' then

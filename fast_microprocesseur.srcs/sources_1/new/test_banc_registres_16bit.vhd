@@ -60,7 +60,7 @@ signal DATA: STD_LOGIC_VECTOR (NB-1 downto 0) := (others => '0');
 signal QA: STD_LOGIC_VECTOR (NB-1 downto 0) := (others => '0');
 signal QB: STD_LOGIC_VECTOR (NB-1 downto 0) := (others => '0');
 signal W: STD_LOGIC := '0';
-signal RST: STD_LOGIC := '0';
+signal RST: STD_LOGIC := '1';
 signal CLK: STD_LOGIC := '0';
 
 begin
@@ -88,6 +88,6 @@ addB <= X"1", X"F" after 100ns;
 addW <= X"5" after 150ns, X"F" after 160ns;
 W <= '1' after 150ns, '0' after 200ns;
 DATA <= X"FFFF" after 150ns;
-RST <= '1' after 500ns;
+RST <= '0' after 500ns;
 
 end Behavioral;
