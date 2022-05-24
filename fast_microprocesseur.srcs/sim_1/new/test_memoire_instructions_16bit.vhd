@@ -38,7 +38,7 @@ end test_memoire_instructions_16bit;
 
 architecture Behavioral of test_memoire_instructions_16bit is
 
-component memoire_instructions
+component memoire_instructions_16bit
     Port ( add : in STD_LOGIC_VECTOR (15 downto 0);
            CLK : in STD_LOGIC;
            Output : out STD_LOGIC_VECTOR (63 downto 0));
@@ -52,7 +52,7 @@ signal CLK: STD_LOGIC := '0';
 
 begin
 
-memoire_instructions_16: memoire_instructions Port Map (
+memoire_instructions_16: memoire_instructions_16bit Port Map (
    add => add,
    CLK => CLK,
    Output => Output
