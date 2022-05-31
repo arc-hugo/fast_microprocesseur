@@ -24,6 +24,7 @@ library alu;
 library banc_registres;
 library memoire_instructions;
 library memoire_donnees;
+library gestion_alea;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
 
@@ -37,9 +38,7 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 --use UNISIM.VComponents.all;
 
 entity processeur_16bit is
---  Port ( );
 end processeur_16bit;
-
 
 architecture Behavioral of processeur_16bit is
 
@@ -53,9 +52,10 @@ signal CLK: STD_LOGIC := '1';
 -- Signal de reset du processeur
 signal RST: STD_LOGIC := '1';
 
-
 -- Pointeur d'instruction
 signal IP: STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
+-- Incrémentation de IP
+signal Incr: STD_LOGIC := '1';
 
 -- Sortie de la mémoire d'instructions
 signal Output: STD_LOGIC_VECTOR (63 downto 0) := (others => '0');
@@ -68,6 +68,9 @@ signal N: STD_LOGIC := '0';
 signal O: STD_LOGIC := '0';
 signal Z: STD_LOGIC := '0';
 signal C: STD_LOGIC := '0';
+
+-- Gestion des aléas
+signal Alea: STD_LOGIC := '0';
 
 -- MUX à la sortie de QA
 signal MUX_QA: STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
@@ -155,6 +158,21 @@ signal A_Mem_RE: STD_LOGIC_VECTOR (NB-1 downto 0) := (others => '0');
 signal OP_Mem_RE: STD_LOGIC_VECTOR (NB-1 downto 0) := (others => '0'); 
 signal B_Mem_RE: STD_LOGIC_VECTOR (NB-1 downto 0) := (others => '0');
 
+-- Gestionnaire des aléas
+component gestion_alea
+    generic(NB: Natural := 16);
+    Port(CLK: in STD_LOGIC;
+         OP_LI_DI: in STD_LOGIC_VECTOR(NB-1 downto 0);
+         A_DI_EX: in STD_LOGIC_VECTOR(NB-1 downto 0);
+         OP_DI_EX: in STD_LOGIC_VECTOR(NB-1 downto 0);
+         B_LI_DI: in STD_LOGIC_VECTOR(NB-1 downto 0);
+         C_LI_DI: in STD_LOGIC_VECTOR(NB-1 downto 0);
+         IP: out STD_LOGIC;
+         Alea: out STD_LOGIC
+    );
+end component;
+
+
 begin
 
 -- Instanciation de la mémoire d'instruction
@@ -177,6 +195,7 @@ banc_registre_16: banc_registres generic map (NB => NB) port Map (
     QB => QB
 );
 
+-- Instanciation de l'UAL
 alu_16: alu generic map (NB => NB) port map (
     A => B_DI_EX,
     B => C_DI_EX,
@@ -188,6 +207,7 @@ alu_16: alu generic map (NB => NB) port map (
     C => C
 );
 
+-- Instanciation de la mémoire de données
 memoire_donnees_16: memoire_donnees generic map (NB => NB) port map (
     add => MUX_IN_Mem,
     Input => B_EX_Mem,
@@ -195,6 +215,18 @@ memoire_donnees_16: memoire_donnees generic map (NB => NB) port map (
     RST => RST,
     CLK => CLK,
     Output => MUX_OUT_Mem
+);
+
+-- Instanciation de la gestion des aléas
+gestion_alea_16: gestion_alea generic map (NB => NB) port map (
+    CLK => CLK,
+    OP_LI_DI => Output((NB*4)-1 downto NB*3),
+    A_DI_EX => A_DI_EX,
+    OP_DI_EX => OP_DI_EX,
+    B_LI_DI => Output((NB*2)-1 downto NB),
+    C_LI_DI => Output((NB)-1 downto 0),
+    IP => Incr,
+    Alea => Alea
 );
 
 -- Processus de mise à jour de l'horloge
@@ -208,15 +240,25 @@ end process;
 process
 begin
     wait until rising_edge(CLK);
-    IP <= IP + '1';
+    if Incr /= '0' then
+        IP <= IP + '1';
+    end if;
 end process;
 
 -- Décalage des valeurs de A dans les pipelines
 process
 begin
     wait until rising_edge(CLK);
-    A_LI_DI <= Output((NB*3)-1 downto NB*2);
-    A_DI_EX <= A_LI_DI;
+    
+    if Alea /= '1' then
+        A_LI_DI <= Output((NB*3)-1 downto NB*2);
+    end if;
+    
+    if Alea = '1' then
+        A_DI_EX <= (others => '0');
+    else
+        A_DI_EX <= A_LI_DI;
+    end if;
     A_EX_Mem <= A_DI_EX;
     A_Mem_RE <= A_EX_Mem;
 end process;
@@ -225,9 +267,21 @@ end process;
 process
 begin
     wait until rising_edge(CLK);
-    OP_LI_DI <= Output((NB*4)-1 downto NB*3);
+    
+    if Alea /= '1' then
+        OP_LI_DI <= Output((NB*4)-1 downto NB*3);
+    end if;
+    
+    if Alea = '1' then
+        OP_DI_EX <= (others => '0');
+    else
+        OP_DI_EX <= OP_LI_DI;
+    end if;
+    
     OP_DI_EX <= OP_LI_DI;
+    
     OP_EX_Mem <= OP_DI_EX;
+    
     OP_Mem_RE <= OP_EX_Mem;
 end process;
 
@@ -235,9 +289,14 @@ end process;
 process
 begin
     wait until rising_edge(CLK);
-    B_LI_DI <= Output((NB*2)-1 downto NB);
+    if Alea /= '1' then
+        B_LI_DI <= Output((NB*2)-1 downto NB);
+    end if;
+    
     -- Transmet une valeur constante ou contenu dans un registre registre selon l'opérateur
-    if OP_LI_DI > X"08" and OP_LI_DI < X"0C"then
+    if Alea = '1' then
+        B_DI_EX <= (others => '0');
+    elsif OP_LI_DI > X"8" and OP_LI_DI < X"C" then
         B_DI_EX <= B_LI_DI;
     else
         B_DI_EX <= MUX_QA;
@@ -263,7 +322,9 @@ end process;
 process
 begin
     wait until rising_edge(CLK);
-    C_LI_DI <= Output(NB-1 downto 0);
+    if Alea /= '1' then
+        C_LI_DI <= Output(NB-1 downto 0);
+    end if;
     C_DI_EX <= QB;
 end process;
 
@@ -287,5 +348,6 @@ MUX_IN_Mem <= A_EX_Mem when OP_EX_Mem = X"B"
 LC_RE <= '0' when (OP_Mem_RE > X"A" and OP_Mem_RE < X"E")
              or OP_Mem_RE = X"0"
              else '1';
+
 
 end Behavioral;
