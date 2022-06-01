@@ -35,7 +35,8 @@ use IEEE.NUMERIC_STD.ALL;
 entity memoire_instructions_16bit is
     Port ( add : in STD_LOGIC_VECTOR (15 downto 0);
            CLK : in STD_LOGIC;
-           Output : out STD_LOGIC_VECTOR (63 downto 0));
+           Output : out STD_LOGIC_VECTOR (63 downto 0) := (others => '0')
+         );
 end memoire_instructions_16bit;
 
 architecture Behavioral of memoire_instructions_16bit is
@@ -60,6 +61,7 @@ constant MEM_INSTR: mem := (X"0009_0001_0010_0000",
                             X"000B_000A_0003_0000",
                             X"0001_0002_0001_0003",
                             X"0003_0006_0001_0003",
+                            X"0000_0000_0000_0000",
                             X"0001_0004_0006_0001",
                             others => (63 downto 0 => '0'));
 

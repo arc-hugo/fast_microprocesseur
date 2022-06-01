@@ -54,8 +54,6 @@ signal RST: STD_LOGIC := '1';
 
 -- Pointeur d'instruction
 signal IP: STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
--- Incrémentation de IP
-signal Incr: STD_LOGIC := '1';
 
 -- Sortie de la mémoire d'instructions
 signal Output: STD_LOGIC_VECTOR (63 downto 0) := (others => '0');
@@ -71,6 +69,8 @@ signal C: STD_LOGIC := '0';
 
 -- Gestion des aléas
 signal Alea: STD_LOGIC := '0';
+-- Retenue du pointeur d'instruction
+signal STR: STD_LOGIC := '0';
 
 -- MUX à la sortie de QA
 signal MUX_QA: STD_LOGIC_VECTOR (15 downto 0) := (others => '0');
@@ -95,7 +95,8 @@ signal LC_RE: STD_LOGIC := '0';
 component memoire_instructions_16bit
     Port ( add : in STD_LOGIC_VECTOR (15 downto 0);
            CLK : in STD_LOGIC;
-           Output : out STD_LOGIC_VECTOR (63 downto 0));
+           Output : out STD_LOGIC_VECTOR (63 downto 0) := (others => '0')
+         );
 end component;
 
 -- Pipeline LI/DI
@@ -162,13 +163,16 @@ signal B_Mem_RE: STD_LOGIC_VECTOR (NB-1 downto 0) := (others => '0');
 component gestion_alea
     generic(NB: Natural := 16);
     Port(CLK: in STD_LOGIC;
+         Output_OP: in STD_LOGIC_VECTOR(NB-1 downto 0);
+         Output_B: in STD_LOGIC_VECTOR(NB-1 downto 0);
+         Output_C: in STD_LOGIC_VECTOR(NB-1 downto 0);
+         A_LI_DI: in STD_LOGIC_VECTOR(NB-1 downto 0);
          OP_LI_DI: in STD_LOGIC_VECTOR(NB-1 downto 0);
          A_DI_EX: in STD_LOGIC_VECTOR(NB-1 downto 0);
          OP_DI_EX: in STD_LOGIC_VECTOR(NB-1 downto 0);
-         B_LI_DI: in STD_LOGIC_VECTOR(NB-1 downto 0);
-         C_LI_DI: in STD_LOGIC_VECTOR(NB-1 downto 0);
-         IP: out STD_LOGIC;
-         Alea: out STD_LOGIC
+         A_EX_Mem: in STD_LOGIC_VECTOR(NB-1 downto 0);
+         OP_EX_Mem: in STD_LOGIC_VECTOR(NB-1 downto 0);
+         Alea: out STD_LOGIC := '0'
     );
 end component;
 
@@ -220,12 +224,15 @@ memoire_donnees_16: memoire_donnees generic map (NB => NB) port map (
 -- Instanciation de la gestion des aléas
 gestion_alea_16: gestion_alea generic map (NB => NB) port map (
     CLK => CLK,
-    OP_LI_DI => Output((NB*4)-1 downto NB*3),
+    Output_OP => Output((NB*4)-1 downto NB*3),
+    Output_B => Output((NB*2)-1 downto NB),
+    Output_C => Output((NB)-1 downto 0),
+    A_LI_DI => A_LI_DI,
+    OP_LI_DI => OP_LI_DI,
     A_DI_EX => A_DI_EX,
     OP_DI_EX => OP_DI_EX,
-    B_LI_DI => Output((NB*2)-1 downto NB),
-    C_LI_DI => Output((NB)-1 downto 0),
-    IP => Incr,
+    A_EX_Mem => A_EX_Mem,
+    OP_EX_Mem => OP_EX_Mem,
     Alea => Alea
 );
 
@@ -240,8 +247,12 @@ end process;
 process
 begin
     wait until rising_edge(CLK);
-    if Incr /= '0' then
+    if Alea = '0' then
+        STR <= '0';
         IP <= IP + '1';
+    elsif Alea = '1' and STR = '0' then
+        STR <= '1';
+        IP <= IP - '1';
     end if;
 end process;
 
@@ -249,16 +260,14 @@ end process;
 process
 begin
     wait until rising_edge(CLK);
-    
-    if Alea /= '1' then
+
+    if Alea = '0' and STR = '0' then
         A_LI_DI <= Output((NB*3)-1 downto NB*2);
+    else
+        A_LI_DI <= (others => '0');
     end if;
     
-    if Alea = '1' then
-        A_DI_EX <= (others => '0');
-    else
-        A_DI_EX <= A_LI_DI;
-    end if;
+    A_DI_EX <= A_LI_DI;
     A_EX_Mem <= A_DI_EX;
     A_Mem_RE <= A_EX_Mem;
 end process;
@@ -268,20 +277,14 @@ process
 begin
     wait until rising_edge(CLK);
     
-    if Alea /= '1' then
+    if Alea = '0' and STR = '0' then
         OP_LI_DI <= Output((NB*4)-1 downto NB*3);
-    end if;
-    
-    if Alea = '1' then
-        OP_DI_EX <= (others => '0');
     else
-        OP_DI_EX <= OP_LI_DI;
+        OP_LI_DI <= (others => '0');
     end if;
     
     OP_DI_EX <= OP_LI_DI;
-    
     OP_EX_Mem <= OP_DI_EX;
-    
     OP_Mem_RE <= OP_EX_Mem;
 end process;
 
@@ -289,14 +292,14 @@ end process;
 process
 begin
     wait until rising_edge(CLK);
-    if Alea /= '1' then
+    if Alea = '0' and STR = '0' then
         B_LI_DI <= Output((NB*2)-1 downto NB);
+    else
+        B_LI_DI <= (others => '0');
     end if;
     
     -- Transmet une valeur constante ou contenu dans un registre registre selon l'opérateur
-    if Alea = '1' then
-        B_DI_EX <= (others => '0');
-    elsif OP_LI_DI > X"8" and OP_LI_DI < X"C" then
+    if OP_LI_DI > X"8" and OP_LI_DI < X"C" then
         B_DI_EX <= B_LI_DI;
     else
         B_DI_EX <= MUX_QA;
@@ -322,9 +325,12 @@ end process;
 process
 begin
     wait until rising_edge(CLK);
-    if Alea /= '1' then
+    if Alea = '0' and STR = '0' then
         C_LI_DI <= Output(NB-1 downto 0);
+    else
+        C_LI_DI <= (others => '0');
     end if;
+    
     C_DI_EX <= QB;
 end process;
 

@@ -35,13 +35,16 @@ use IEEE.NUMERIC_STD.ALL;
 entity gestion_alea is
     generic(NB: Natural := 16);
     Port(CLK: in STD_LOGIC;
+         Output_OP: in STD_LOGIC_VECTOR(NB-1 downto 0);
+         Output_B: in STD_LOGIC_VECTOR(NB-1 downto 0);
+         Output_C: in STD_LOGIC_VECTOR(NB-1 downto 0);
+         A_LI_DI: in STD_LOGIC_VECTOR(NB-1 downto 0);
          OP_LI_DI: in STD_LOGIC_VECTOR(NB-1 downto 0);
          A_DI_EX: in STD_LOGIC_VECTOR(NB-1 downto 0);
          OP_DI_EX: in STD_LOGIC_VECTOR(NB-1 downto 0);
-         B_LI_DI: in STD_LOGIC_VECTOR(NB-1 downto 0);
-         C_LI_DI: in STD_LOGIC_VECTOR(NB-1 downto 0);
-         IP: out STD_LOGIC;
-         Alea: out STD_LOGIC
+         A_EX_Mem: in STD_LOGIC_VECTOR(NB-1 downto 0);
+         OP_EX_Mem: in STD_LOGIC_VECTOR(NB-1 downto 0);
+         Alea: out STD_LOGIC := '0'
     );
 end gestion_alea;
 
@@ -51,32 +54,34 @@ signal Count: STD_LOGIC_VECTOR(1 downto 0) := "00";
 
 begin
 
-process (OP_LI_DI)
-begin
-    
-end process;
-
 process
 begin
     wait until rising_edge(CLK);
     if Count > X"1" then
         Alea <= '1';
         Count <= Count - '1';
-        IP <= '0';
-    elsif OP_DI_EX < X"C" and OP_DI_EX > X"0" and OP_LI_DI > X"0"
-                and ((A_DI_EX = B_LI_DI and OP_LI_DI < X"9")
-                     or (A_DI_EX = C_LI_DI and OP_LI_DI < X"8")) then
-        Alea <= '1';
-        Count <= "11";
-        IP <= '0';
+    elsif Output_OP > X"0" and Output_OP < X"9" then
+        if OP_LI_DI > X"0" and OP_LI_DI < X"C"
+           and (A_LI_DI = Output_B
+                or (A_LI_DI = Output_C and Output_OP < X"8"))
+                then
+            Alea <= '1';
+            Count <= "11";            
+        elsif OP_DI_EX > X"0" and OP_DI_EX < X"C"
+            and (A_DI_EX = Output_B
+                 or (A_DI_EX = Output_C and Output_OP < X"8"))
+                 then
+            Alea <= '1';
+            Count <= "10";
+        elsif OP_EX_Mem > X"0" and OP_EX_Mem < X"C"
+              and (A_EX_Mem = Output_B
+                   or (A_EX_Mem = Output_C and Output_OP < X"8"))
+                   then
+            Alea <= '1';
+            Count <= "01";
+        end if;
     else
         Alea <= '0';
-        if Count > X"0" then
-            IP <= '0';
-            Count <= Count - '1';
-        else
-            IP <= '1';
-        end if;
     end if;
 end process;
 
